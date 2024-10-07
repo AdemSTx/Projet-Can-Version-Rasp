@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <script src="gauge.min.js"></script>
+  <title>Régime moteur</title>
+</head>
+<body>
+  <h1>Régime moteur précis</h1>
+  <div id="messages"></div>
+
+  <canvas id="gauge-id"></canvas>
+
+  <script>
+    const socket = new WebSocket('ws://10.129.26.97:8015');
+
+    var radial = new RadialGauge({
+      renderTo: 'gauge-id',
+      width: 400,
+      height: 400,
+      units: 'Tr/min',
+      title: false,
+      value: 0,
+      minValue: 0,
+      maxValue: 8000,
+      majorTicks: [
+          "0","1000","2000","3000","4000","5000","6000","7000","8000"
+      ],
+      minorTicks: 10,
+      strokeTicks: false,
+      highlights: [
+          { from: 0, to: 1000, color: 'rgb(255,255,255)'},
+          { from: 1000, to: 3000, color: 'rgb(0,255,0)'},
+          { from: 3000, to: 5000, color: 'rgb(237,127,16)'},
+          { from: 5000, to: 8000, color: 'rgb(255,0,0)'},
+      ],
+      colorPlate: '#22692',
+      colorMajorTicks: '#0',
+      colorMinorTicks: '#0',
+      colorTitle: '#fff',
+      colorUnits: '#ccc',
+      colorNumbers: '#eee',
+      colorNeedle: 'rgba(240, 128, 128,1)',
+      colorNeedleEnd: 'rgba(255, 160, 122,.9)',
+      valueBox: true,
+      animationRule: 'linear',
+      animationDuration: 10000,
+      valueDec : 0,
+      valueInt : 0
+    });
+
+    radial.draw();
+
+    // Event listener for WebSocket connection open
+    socket.addEventListener('open', () => {
+      console.log('Connected to WebSocket server.');
+    });
+
+    // Event listener for incoming messages
+    socket.addEventListener('message', (event) => {
+      const messagesDiv = document.getElementById('messages');
+      messagesDiv.innerHTML = `<p>${event.data.toString()}</p>`;
+      radial.update({
+        value : event.data
+      })
+    });
+
+  </script>
+</body>
+</html>
