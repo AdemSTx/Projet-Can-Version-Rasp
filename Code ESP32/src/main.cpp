@@ -12,7 +12,6 @@
 #define f_bus_can 250000      // réglage Vitesse du bus CAN
 #define INTERVAL 200
 
-
 CANMessage messageCANReception;
 
 const char* ssid = "RPGL";
@@ -20,14 +19,26 @@ const char* password = "ViveMha1805";
 
 class RegimeMoteur {
     public:
-        String hex;
         int regime;
         CANMessage message;
         RegimeMoteur(CANMessage message) {
             message = message;
-            regime = (message.data[0]*256 + message.data[1]) / 8;            
+            regime = (message.data[0]*256 + message.data[1]) / 8;   
         }
 };
+
+class VitesseMoteur {
+    public:
+        int vitesse;
+        CANMessage vite;
+        VitesseMoteur(CANMessage vite) {
+            vite = vite;
+            vitesse = (vite.data[2]*256 + vite.data[3]) / 100;         
+        }
+};
+
+
+
 
 ACAN2515 can2515(cs_2515, SPI, int_2515); // Déclaration de l'objet CAN utilisant le réglages des broches définis avant
 const ACAN2515Mask masque = standard2515Mask(0b11111111111, 0, 0);
@@ -101,7 +112,6 @@ void setup()
 	delay(500);
 
 
-
 }
 
 void loop() 
@@ -122,11 +132,17 @@ void loop()
             can2515.receive(messageCANReception);
 
             RegimeMoteur MoteurInfo(messageCANReception);
+            VitesseMoteur VitesseInfo(messageCANReception);
 
-            String message = String(MoteurInfo.regime);
+
+            String regime = String(MoteurInfo.regime);
+            String kmh = String(VitesseInfo.vitesse);
+
+            String message = "{ \"regime\" : \"" + regime  + "\", \"kmh\" : \"" + kmh + "\" }";
+
             webSocket.sendTXT(message);
+            Serial.print("message : ");
             Serial.println(message);
-
         }
     
     }    
