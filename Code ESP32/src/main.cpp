@@ -13,6 +13,7 @@
 #define INTERVAL 200
 
 CANMessage messageCANReception;
+CANMessage message;
 
 const char* ssid = "RPGL";
 const char* password = "ViveMha1805";
@@ -38,8 +39,6 @@ class VitesseMoteur {
 };
 
 
-
-
 ACAN2515 can2515(cs_2515, SPI, int_2515); // Déclaration de l'objet CAN utilisant le réglages des broches définis avant
 const ACAN2515Mask masque = standard2515Mask(0b11111111111, 0, 0);
 void message_1octet(const CANMessage & inMessage);
@@ -49,13 +48,10 @@ long previousMillis = 0;
 //réglage identifiant trame voulue
 const ACAN2515AcceptanceFilter filtres[] = {
    { standard2515Filter(0x3E1, 0, 0), message_1octet }, 
-
 };
 
-void message_1octet(const CANMessage & inMessage)
-{
+void message_1octet(const CANMessage & inMessage){}
 
-}
 ///////////////////////////////////////////////////////////////////////////////////////////
 /////////////////  Création Websocket et client wifi//////////////////////////////////////////
 WiFiClient  client;
@@ -63,7 +59,22 @@ WebSocketsClient webSocket; // websocket client class instance
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {} // utile si réception de message de la part du serveur
+void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
+    switch(type) {
+		case WStype_TEXT:
+            message.id = 0x101;
+            message.len = 1;
+            String recvmess = String(payload, DEC);
+            if(recvmess == "start"){
+                message.data[0] = 1;
+            }
+            else if(recvmess == "stop"){
+                message.data[0] = 3;
+            }
+            can2515.tryToSend(message);
+            break;
+    }
+} // utile si réception de message de la part du serveur
 
 void InitWifi() {
 
@@ -87,19 +98,20 @@ void setup()
     Serial.begin(115200);
 
     InitWifi();    // fonction à créer ou remplacer par code de connexion au wifi
-  
+
     webSocket.begin("10.129.26.97",8015); // Exemple avec adresse IP, port et chemin
     // WebSocket event handler
     webSocket.onEvent(webSocketEvent);
     // if connection failed retry every 5s
     webSocket.setReconnectInterval(5000);
     SPI.begin();
-	delay(500);
+    delay(500);
     ACAN2515Settings can_vit(f_2515, f_bus_can);
     const uint16_t v_err = can2515.begin(can_vit, [] { can2515.isr(); },masque, filtres, 2 );   
-  
-  if (v_err == 0) 
-    { 
+
+    webSocket.onEvent(webSocketEvent);
+
+    if (v_err == 0) { 
         Serial.println("Recepteur: Config ok");
     } 
 	else 
@@ -134,15 +146,14 @@ void loop()
             RegimeMoteur MoteurInfo(messageCANReception);
             VitesseMoteur VitesseInfo(messageCANReception);
 
-
             String regime = String(MoteurInfo.regime);
             String kmh = String(VitesseInfo.vitesse);
 
             String message = "{ \"regime\" : \"" + regime  + "\", \"kmh\" : \"" + kmh + "\" }";
 
             webSocket.sendTXT(message);
-            Serial.print("message : ");
-            Serial.println(message);
+            //Serial.print("message : ");
+            //Serial.println(message);
         }
     
     }    
@@ -150,4 +161,8 @@ void loop()
 }  
 
 //id = 101
+
+
 //0x01 
+
+
