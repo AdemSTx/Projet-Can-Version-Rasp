@@ -8,12 +8,10 @@ const wss = new WebSocket.Server({ port : 8015 });
 
 wss.on('connection',(ws)=>{
     console.log('A new client Connected!');
-
     ws.on('message',(message)=>{
         console.log('received : ', message.toString());
-
         wss.clients.forEach((client)=>{
-            if(client.readyState === WebSocket.OPEN) {
+            if(client !== ws && client.readyState === WebSocket.OPEN){
                 client.send(message.toString());
             }
         });

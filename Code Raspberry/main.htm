@@ -3,13 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <script src="gauge.min.js"></script>
+  <script src="bootstrap/js/bootstrap.bundle.js"></script>
+  <link rel="stylesheet" href="bootstrap/css/bootstrap.css">
   <title>Régime moteur</title>
 </head>
 <body>
-  <h1>Régime moteur précis</h1>
-  <div id="messages"></div>
-
-  <canvas id="gauge-id"></canvas>
+  <h1 class="text-center">Régime moteur</h1>
+  <div id="messages" class="text-center"></div>
+  <div class="py-5 d-flex justify-content-center">
+    <div class="col-4">
+      <canvas id="gauge-id"></canvas>
+    </div>
+    <div class="col-4">
+      <canvas id="gauge-id-D"></canvas>
+    </div>
+  </div>
+  <div class="d-flex justify-content-center">
+    <!--<div class="col-2">
+      <button type="button" class="btn btn-success btn-lg" id="startBtn">Start</button>
+    </div>
+    <div class="col-3">
+      <button type="button" class="btn btn-danger btn-lg" id="stopBtn">Stop</button>
+    </div>-->
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" checked>
+      <label class="form-check-label" for="flexSwitchCheckChecked">État Moteur</label>
+    </div>
+  </div>
 
   <script>
     const socket = new WebSocket('ws://10.129.26.97:8015');
@@ -49,20 +69,79 @@
       valueInt : 0
     });
 
-    radial.draw();
+    var radialD = new RadialGauge({
+      renderTo: 'gauge-id-D',
+      width: 400,
+      height: 400,
+      units: 'km/h',
+      title: false,
+      value: 0,
+      minValue: 0,
+      maxValue: 240,
+      majorTicks: [
+          "0","20","30","40","50","60","80","100","120","140","160","180","200","220","240","260","280"
 
+      ],
+      minorTicks: 10,
+      strokeTicks: false,
+      highlights: [
+          { from: 0, to: 50, color: 'rgb(255,255,255)'},
+          { from: 50, to: 100, color: 'rgb(204, 238, 255)'},
+          { from: 100, to: 150, color: 'rgb(0,255,0)'},
+          { from: 150, to: 200, color: 'rgb(237,127,16)'},
+          { from: 200, to: 240, color: 'rgb(255,0,0)'},
+      ], 
+      colorPlate: '#222',
+      colorMajorTicks: '#0',
+      colorMinorTicks: '#0',
+      colorTitle: '#fff',
+      colorUnits: '#ccc',
+      colorNumbers: '#eee',
+      colorNeedle: 'rgba(0, 0, 0,1)',
+      colorNeedleEnd: 'rgba(0, 255, 0,.9)',
+      valueBox: true,
+      animationRule: 'linear',
+      animationDuration: 10000,
+      valueDec : 0,
+      valueInt : 0
+    });
+
+    radialD.draw();
+    radial.draw();
+    
+    function Start(){
+          socket.send("start");
+    }
+    function Stop(){
+      socket.send("stop");
+    }
+    
     // Event listener for WebSocket connection open
     socket.addEventListener('open', () => {
       console.log('Connected to WebSocket server.');
+      
+      document.getElementById("startBtn").onclick = Start;
+      document.getElementById("stopBtn").onclick = Stop;
+
     });
 
+    
     // Event listener for incoming messages
     socket.addEventListener('message', (event) => {
       const messagesDiv = document.getElementById('messages');
       messagesDiv.innerHTML = `<p>${event.data.toString()}</p>`;
-      radial.update({
-        value : event.data
-      })
+      var regimeVitesse = JSON.parse(event.data)
+      if(regimeVitesse.regime){
+        radial.update({
+          value : regimeVitesse?.regime
+        });
+      }
+      if(regimeVitesse.kmh){
+        radialD.update({
+          value : regimeVitesse?.kmh
+        });
+      }
+
     });
 
   </script>
